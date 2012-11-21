@@ -11,37 +11,18 @@
 module GHC.Event.Manager
     ( -- * Types
       EventManager
+    , Event
 
       -- * Creation
     , new
-    , newWith
-    , newDefaultBackend
 
       -- * Running
-    , finished
     , loop
-    , step
     , shutdown
     , cleanup
-    , wakeManager
-
-      -- * Registering interest in I/O events
-    , Event
-    , evtRead
-    , evtWrite
-    , IOCallback
-    , FdKey(keyFd)
-    , registerFd_
-    , registerFd
-    , unregisterFd_
-    , unregisterFd
-    , closeFd
 
       -- * Registering interest in timeout events
-    , TimeoutCallback
-    , TimeoutKey
     , registerTimeout
-    , updateTimeout
     , unregisterTimeout
     ) where
 

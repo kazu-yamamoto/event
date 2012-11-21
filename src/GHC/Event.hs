@@ -28,21 +28,11 @@ module GHC.Event
     , evtRead
     , evtWrite
     , IOCallback
-    , FdKey(keyFd)
     , registerFd
-    , registerFd_
-    , unregisterFd
-    , unregisterFd_
     , closeFd
 
-      -- * Registering interest in timeout events
-    , TimeoutCallback
-    , TimeoutKey
-    , registerTimeout
-    , updateTimeout
-    , unregisterTimeout
     ) where
 
-import GHC.Event.Manager
+import GHC.Event.SequentialManager
 import GHC.Event.Thread (getSystemEventManager)
 
