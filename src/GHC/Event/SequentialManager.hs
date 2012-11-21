@@ -33,6 +33,8 @@ module GHC.Event.SequentialManager
     , FdKey
     , registerFd_
     , registerFd
+    , unregisterFd_
+    , unregisterFd
     , closeFd
     , closeFd_
     , callbackTableVar
@@ -44,7 +46,7 @@ module GHC.Event.SequentialManager
 ------------------------------------------------------------------------
 -- Imports
 
-import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
+import Control.Concurrent.MVar (MVar, modifyMVar, newMVar)
 import Control.Exception (finally)
 import Control.Monad ((=<<), forM_, liftM, sequence, when)
 import Data.IORef (IORef, atomicModifyIORef, mkWeakIORef, newIORef, readIORef,
@@ -70,8 +72,12 @@ import GHC.Arr
 import qualified GHC.Event.KQueue as KQueue
 #elif defined(HAVE_EPOLL)
 import qualified GHC.Event.EPoll  as EPoll
+import Control.Concurrent.MVar (modifyMVar_)
 #elif defined(HAVE_POLL)
 import qualified GHC.Event.Poll   as Poll
+import Control.Concurrent.MVar (readMVar)
+import GHC.List (filter)
+import GHC.Event.Unique (Unique, UniqueSource, newSource, newUnique)
 #else
 # error not implemented for this operating system
 #endif
@@ -344,7 +350,7 @@ handleControlEvent mgr reg _evt = do
     CMsgSignal fp s -> runHandlers fp s
 
 newDefaultBackend :: IO Backend
-newDefaultBackend = EPoll.new
+newDefaultBackend = Poll.new
 
 -- | Create a new event manager.
 new :: IO EventManager
@@ -365,7 +371,7 @@ newWith be = do
   let mgr = EventManager { emBackend = be
                          , emFds = iofds
                          , emState = state
-                         , emUniqueRef = uref
+                         , emUniqueSource = us
                          , emControl = ctrl
                          }
   _ <- registerFdPersistent_ mgr (handleControlEvent mgr) (controlReadFd ctrl) evtRead
@@ -419,8 +425,8 @@ step mgr@EventManager{..} = do
   waitForIO =
     do n <- I.pollNonBlock emBackend (onFdEvent mgr)
        when (n <= 0) (do yield
-                         n <- I.pollNonBlock emBackend (onFdEvent mgr)
-                         when (n <= 0) (I.poll emBackend Forever (onFdEvent mgr) >> return ())
+                         m <- I.pollNonBlock emBackend (onFdEvent mgr)
+                         when (m <= 0) (I.poll emBackend Forever (onFdEvent mgr) >> return ())
                      )
 
 
@@ -433,7 +439,7 @@ step mgr@EventManager{..} = do
 -- event manager ought to be woken.
 registerFdPersistent_ :: EventManager -> IOCallback -> Fd -> Event
                          -> IO (FdKey, Bool)
-registerFdPersistent_ mgr@EventManager{..} cb fd evs = do
+registerFdPersistent_ EventManager{..} cb fd evs = do
   u <- newUnique emUniqueSource
   let !reg  = FdKey fd u
       !fd'  = fromIntegral fd
@@ -534,7 +540,7 @@ closeFd_ :: IM.IntMap [FdData] -> Fd -> IO (IM.IntMap [FdData])
 closeFd_ oldMap fd = do
   case IM.delete (fromIntegral fd) oldMap of
     (Nothing,  _)       -> return oldMap
-    (Just fds, !newMap) -> do forM_ fds $ \(FdData ev cb) -> cb (ev `mappend` evtClose)
+    (Just fds, !newMap) -> do forM_ fds $ \(FdData reg ev cb) -> cb reg (ev `mappend` evtClose)
                               return newMap
 
 ------------------------------------------------------------------------

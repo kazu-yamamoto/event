@@ -35,6 +35,10 @@ import qualified GHC.Event.Internal as E
 #include "EventConfig.h"
 #if !defined(HAVE_EPOLL)
 import GHC.Base
+import GHC.Event.Internal (Timeout(..))
+import System.Posix.Types (Fd(..))
+
+data EPoll = EPoll
 
 new :: IO E.Backend
 new = error "EPoll back end not implemented for this platform"
@@ -58,6 +62,12 @@ poll :: EPoll                     -- ^ state
      -> (Fd -> E.Event -> IO ())  -- ^ I/O callback
      -> IO Int
 poll _ _ _ = error "EPoll back end not implemented for this platform"
+
+pollNonBlock :: EPoll                     -- ^ state
+               -> (Fd -> E.Event -> IO ())  -- ^ I/O callback
+               -> IO Int
+pollNonBlock _ _ = error "EPoll back end not implemented for this platform"
+
 #else
 
 #include <sys/epoll.h>

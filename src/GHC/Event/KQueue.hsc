@@ -101,7 +101,7 @@ modifyFd q fd oevt nevt = withMVar (eqChanges q) $ \ch -> do
 poll :: EventQueue
      -> Timeout
      -> (Fd -> E.Event -> IO ())
-     -> IO ()
+     -> IO Int
 poll EventQueue{..} tout f = do
     changesArr <- A.empty
     changes <- swapMVar eqChanges changesArr
@@ -117,6 +117,7 @@ poll EventQueue{..} tout f = do
         cap <- A.capacity eqEvents
         when (n == cap) $ A.ensureCapacity eqEvents (2 * cap)
         A.forM_ eqEvents $ \e -> f (fromIntegral (ident e)) (toEvent (filter e))
+    return n
 
 ------------------------------------------------------------------------
 -- FFI binding

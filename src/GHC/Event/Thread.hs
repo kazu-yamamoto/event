@@ -138,7 +138,7 @@ threadWaitSTM :: NE.Event -> Fd -> IO (STM ())
 threadWaitSTM evt fd = mask_ $ do
   m <- newTVarIO Nothing
   !mgr <- getSystemEventManager
-  SM.registerFd_ mgr (\_ ev -> atomically (writeTVar m (Just ev))) fd evt
+  _ <- SM.registerFd_ mgr (\_ ev -> atomically (writeTVar m (Just ev))) fd evt
   return (do mevt <- readTVar m
              case mevt of
                Nothing -> retry
@@ -161,7 +161,7 @@ threadWait :: NE.Event -> Fd -> IO ()
 threadWait evt fd = mask_ $ do
   m <- newEmptyMVar
   !mgr <- getSystemEventManager
-  SM.registerFd_ mgr (\_ ev -> putMVar m ev) fd evt
+  _ <- SM.registerFd_ mgr (\_ ev -> putMVar m ev) fd evt
   evt' <- takeMVar m
   if evt' `E.eventIs` E.evtClose
     then ioError $ errnoToIOError "threadWait" eBADF Nothing Nothing
