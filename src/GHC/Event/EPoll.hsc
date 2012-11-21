@@ -22,12 +22,6 @@ module GHC.Event.EPoll
     (
       new
     , available
-    , EPoll
-    , newEPoll
-    , modifyFd
-    , delete
-    , poll
-    , pollNonBlock
     ) where
 
 import qualified GHC.Event.Internal as E
@@ -35,39 +29,13 @@ import qualified GHC.Event.Internal as E
 #include "EventConfig.h"
 #if !defined(HAVE_EPOLL)
 import GHC.Base
-import GHC.Event.Internal (Timeout(..))
-import System.Posix.Types (Fd(..))
-
-data EPoll = EPoll
 
 new :: IO E.Backend
 new = error "EPoll back end not implemented for this platform"
 
-newEPoll :: IO EPoll
-newEPoll = error "EPoll back end not implemented for this platform"
-
 available :: Bool
 available = False
 {-# INLINE available #-}
-
-
-delete :: EPoll -> IO ()
-delete _ = error "EPoll back end not implemented for this platform"
-
-modifyFd :: EPoll -> Fd -> E.Event -> E.Event -> IO ()
-modifyFd _ _ _ _ = error "EPoll back end not implemented for this platform"
-
-poll :: EPoll                     -- ^ state
-     -> Timeout                   -- ^ timeout in milliseconds
-     -> (Fd -> E.Event -> IO ())  -- ^ I/O callback
-     -> IO Int
-poll _ _ _ = error "EPoll back end not implemented for this platform"
-
-pollNonBlock :: EPoll                     -- ^ state
-               -> (Fd -> E.Event -> IO ())  -- ^ I/O callback
-               -> IO Int
-pollNonBlock _ _ = error "EPoll back end not implemented for this platform"
-
 #else
 
 #include <sys/epoll.h>
