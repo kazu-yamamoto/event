@@ -335,6 +335,10 @@ foreign import ccall unsafe "kevent64"
     c_kevent64_unsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt -> CUInt
                -> Ptr TimeSpec -> IO CInt
 #elif defined(HAVE_KEVENT)
+foreign import ccall safe "kevent"
+    c_kevent :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt
+             -> Ptr TimeSpec -> IO CInt
+
 foreign import ccall unsafe "kevent"
     c_kevent_unsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt
              -> Ptr TimeSpec -> IO CInt
