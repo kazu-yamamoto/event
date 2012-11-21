@@ -98,6 +98,12 @@ modifyFd q fd oevt nevt = withMVar (eqChanges q) $ \ch -> do
   when (nevt `E.eventIs` E.evtRead)  $ addChange filterRead flagAdd
   when (nevt `E.eventIs` E.evtWrite) $ addChange filterWrite flagAdd
 
+modifyFdOnce :: EventQueue -> Fd -> E.Event -> IO ()
+modifyFdOnce q fd evt = withMVar (eqChanges q) $ \ch -> do
+  let addChange filt flag = A.snoc ch $ event fd filt flag noteEOF
+  when (evt `E.eventIs` E.evtRead)  $ addChange filterRead flagOneshot
+  when (evt `E.eventIs` E.evtWrite) $ addChange filterWrite flagOneshot
+
 poll :: EventQueue
      -> Timeout
      -> (Fd -> E.Event -> IO ())
@@ -125,10 +131,22 @@ poll EventQueue{..} tout f = do
 pollNonBlock :: EventQueue                  -- ^ state
                -> (Fd -> E.Event -> IO ())  -- ^ I/O callback
                -> IO Int
-pollNonBlock = undefined
+pollNonBlock EventQueue{..} f = do
+    changesArr <- A.empty
+    changes <- swapMVar eqChanges changesArr
+    changesLen <- A.length changes
+    len <- A.length eqEvents
+    when (changesLen > len) $ A.ensureCapacity eqEvents (2 * changesLen)
+    n <- A.useAsPtr changes $ \changesPtr chLen ->
+           A.unsafeLoad eqEvents $ \evPtr evCap ->
+               withTimeSpec (TimeSpec 0 0) $
+                   keventUnsafe eqFd changesPtr chLen evPtr evCap
 
-modifyFdOnce :: EventQueue -> Fd -> E.Event -> IO ()
-modifyFdOnce = undefined
+    unless (n == 0) $ do
+        cap <- A.capacity eqEvents
+        when (n == cap) $ A.ensureCapacity eqEvents (2 * cap)
+        A.forM_ eqEvents $ \e -> f (fromIntegral (ident e)) (toEvent (filter e))
+    return n
 
 ------------------------------------------------------------------------
 -- FFI binding
@@ -228,6 +246,7 @@ newtype Flag = Flag Word16
 #{enum Flag, Flag
  , flagAdd     = EV_ADD
  , flagDelete  = EV_DELETE
+ , flagOneshot = EV_ONESHOT
  }
 
 newtype Filter = Filter Word16
@@ -272,6 +291,16 @@ kevent k chs chlen evs evlen ts
       c_kevent k chs (fromIntegral chlen) evs (fromIntegral evlen) ts
 #endif
 
+keventUnsafe :: QueueFd -> Ptr Event -> Int -> Ptr Event -> Int -> Ptr TimeSpec
+       -> IO Int
+keventUnsafe k chs chlen evs evlen ts
+    = fmap fromIntegral $ E.throwErrnoIfMinus1NoRetry "kevent" $
+#if defined(HAVE_KEVENT64)
+      c_kevent64Unsafe k chs (fromIntegral chlen) evs (fromIntegral evlen) 0 ts
+#else
+      c_keventUnsafe k chs (fromIntegral chlen) evs (fromIntegral evlen) ts
+#endif
+
 withTimeSpec :: TimeSpec -> (Ptr TimeSpec -> IO a) -> IO a
 withTimeSpec ts f =
     if tv_sec ts < 0 then
@@ -302,9 +331,12 @@ foreign import ccall unsafe "kqueue"
 foreign import ccall safe "kevent64"
     c_kevent64 :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt -> CUInt
                -> Ptr TimeSpec -> IO CInt
+foreign import ccall unsafe "kevent64"
+    c_kevent64Unsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt -> CUInt
+               -> Ptr TimeSpec -> IO CInt
 #elif defined(HAVE_KEVENT)
-foreign import ccall safe "kevent"
-    c_kevent :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt
+foreign import ccall unsafe "kevent"
+    c_keventUnsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt
              -> Ptr TimeSpec -> IO CInt
 #else
 #error no kevent system call available!?
