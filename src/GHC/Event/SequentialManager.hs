@@ -44,9 +44,9 @@ module GHC.Event.SequentialManager
 ------------------------------------------------------------------------
 -- Imports
 
-import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
+import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
 import Control.Exception (finally)
-import Control.Monad ((=<<), forM_, liftM, sequence, sequence_, when)
+import Control.Monad ((=<<), forM_, liftM, sequence, when)
 import Data.IORef (IORef, atomicModifyIORef, mkWeakIORef, newIORef, readIORef,
                    writeIORef)
 import Data.Maybe (Maybe(..))
@@ -54,19 +54,16 @@ import Data.Monoid (mappend, mconcat, mempty)
 import GHC.Base
 import GHC.Conc.Signal (runHandlers)
 import GHC.Conc.Sync (yield)
-import GHC.List (filter, replicate)
+import GHC.List (replicate)
 import GHC.Num (Num(..))
-import GHC.Real ((/), fromIntegral, mod)
+import GHC.Real (fromIntegral, mod)
 import GHC.Show (Show(..))
-import GHC.Event.Clock (getCurrentTime)
 import GHC.Event.Control
 import GHC.Event.Internal (Backend, Event, evtClose, evtRead, evtWrite,
                            Timeout(..))
 import System.Posix.Types (Fd)
-import GHC.Event.Unique (Unique, UniqueSource, newSource, newUnique)
 import qualified GHC.Event.IntMap as IM
 import qualified GHC.Event.Internal as I
-import qualified GHC.Event.PSQ as Q
 import GHC.Arr
 
 #if defined(HAVE_KQUEUE)
@@ -207,8 +204,8 @@ step mgr@EventManager{..} = do
   waitForIO = 
     do n <- I.pollNonBlock emBackend (onFdEvent mgr)
        when (n <= 0) (do yield
-                         n <- I.pollNonBlock emBackend (onFdEvent mgr)
-                         when (n <= 0) (I.poll emBackend Forever (onFdEvent mgr) >> return ())
+                         m <- I.pollNonBlock emBackend (onFdEvent mgr)
+                         when (m <= 0) (I.poll emBackend Forever (onFdEvent mgr) >> return ())
                      )
 
 
@@ -227,7 +224,7 @@ registerControlFd mgr fd evs = I.modifyFd (emBackend mgr) fd mempty evs
 -- | Register interest in the given events, without waking the event
 -- manager thread.  
 registerFd_ :: EventManager -> IOCallback -> Fd -> Event -> IO ()
-registerFd_ mgr@EventManager{..} cb fd evs = do
+registerFd_ EventManager{..} cb fd evs = do
   modifyMVar_ (emFds ! hashFd fd)
      (\oldMap -> 
        case IM.insertWith (++) (fromIntegral fd) [FdData evs cb] oldMap of

@@ -247,7 +247,7 @@ loop mgr@EventManager{..} = do
 step :: EventManager -> TimeoutQueue -> IO (Bool, TimeoutQueue)
 step mgr@EventManager{..} tq = do
   (timeout, q') <- mkTimeout tq
-  I.poll emBackend timeout (onFdEvent mgr)
+  _ <- I.poll emBackend timeout (onFdEvent mgr)
   state <- readIORef emState
   state `seq` return (state == Running, q')
  where
