@@ -1,0 +1,58 @@
+name:          event
+version:       0.1
+synopsis:      Scalable event notification
+description:
+  Scalable event notification for file handles, sockets, timers, etc.
+license:       BSD3
+license-file:  LICENSE
+author:        Bryan O'Sullivan <bos@serpentine.com>
+               Johan Tibell <johan.tibell@gmail.com>
+maintainer:    Johan Tibell <johan.tibell@gmail.com>
+category:      System
+
+build-type:    Configure
+cabal-version: >= 1.6
+extra-tmp-files:
+  config.log config.status autom4te.cache
+  include/EventConfig.h
+extra-source-files:
+  README.md config.guess config.sub install-sh configure.ac configure
+  cbits/eventsupport.c include/EventConfig.h.in include/HsEvent.h
+
+library
+  extensions: NoImplicitPrelude
+
+  exposed-modules:
+    GHC.Event
+    GHC.Event.Thread
+
+  other-modules:
+    GHC.Event.Array
+    GHC.Event.Clock
+    GHC.Event.Control
+    GHC.Event.EPoll
+    GHC.Event.IntMap
+    GHC.Event.Internal
+    GHC.Event.KQueue
+    GHC.Event.Manager
+    GHC.Event.PSQ
+    GHC.Event.Poll
+    GHC.Event.SequentialManager
+    GHC.Event.Unique
+
+  build-depends:
+    base >= 4 && < 5,
+    ghc-prim
+
+  ghc-prof-options: -auto-all
+  ghc-options: -Wall -fno-warn-unused-do-bind -funbox-strict-fields
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+  hs-source-dirs: src
+  include-dirs: include
+  install-includes: EventConfig.h
+
+source-repository head
+  type:     git
+  location: git://github.com/tibbe/event.git
