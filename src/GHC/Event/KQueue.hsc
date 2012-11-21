@@ -82,7 +82,7 @@ new = do
   changesArr <- A.empty
   changes <- newMVar changesArr
   events <- A.new 64
-  let !be = E.backend poll modifyFd delete (EventQueue qfd changes events)
+  let !be = E.backend poll pollNonBlock modifyFd modifyFdOnce delete (EventQueue qfd changes events)
   return be
 
 delete :: EventQueue -> IO ()
@@ -118,6 +118,17 @@ poll EventQueue{..} tout f = do
         when (n == cap) $ A.ensureCapacity eqEvents (2 * cap)
         A.forM_ eqEvents $ \e -> f (fromIntegral (ident e)) (toEvent (filter e))
     return n
+
+-- | Select a set of file descriptors which are ready for I/O
+-- operations and call @f@ for all ready file descriptors, passing the
+-- events that are ready.
+pollNonBlock :: EventQueue                  -- ^ state
+               -> (Fd -> E.Event -> IO ())  -- ^ I/O callback
+               -> IO Int
+pollNonBlock = undefined
+
+modifyFdOnce :: EventQueue -> Fd -> E.Event -> IO ()
+modifyFdOnce = undefined
 
 ------------------------------------------------------------------------
 -- FFI binding

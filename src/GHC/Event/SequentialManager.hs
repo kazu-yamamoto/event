@@ -33,8 +33,10 @@ module GHC.Event.SequentialManager
     , FdKey
     , registerFd_
     , registerFd
+#if defined(HAVE_POLL)
     , unregisterFd_
     , unregisterFd
+#endif
     , closeFd
     , closeFd_
     , callbackTableVar
@@ -69,9 +71,10 @@ import qualified GHC.Event.Internal as I
 import GHC.Arr
 
 #if defined(HAVE_KQUEUE)
-import qualified GHC.Event.KQueue as KQueue
+import qualified GHC.Event.KQueue as BE (new)
+import Control.Concurrent.MVar (modifyMVar_)
 #elif defined(HAVE_EPOLL)
-import qualified GHC.Event.EPoll  as EPoll
+import qualified GHC.Event.EPoll  as BE (new)
 import Control.Concurrent.MVar (modifyMVar_)
 #elif defined(HAVE_POLL)
 import qualified GHC.Event.Poll   as Poll
@@ -94,7 +97,7 @@ callbackTableVar :: EventManager -> Fd -> MVar (IM.IntMap [FdData])
 callbackTableVar mgr fd = emFds mgr ! hashFd fd
 
 
-#if defined(HAVE_EPOLL)
+#if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
 ------------------------------------------------------------------------
 -- Types
 
@@ -135,7 +138,7 @@ handleControlEvent mgr fd _evt = do
     CMsgSignal fp s -> runHandlers fp s
 
 newDefaultBackend :: IO Backend
-newDefaultBackend = EPoll.new
+newDefaultBackend = BE.new
 
 -- | Create a new event manager.
 new :: IO EventManager
