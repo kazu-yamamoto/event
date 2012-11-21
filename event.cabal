@@ -45,9 +45,7 @@ library
     ghc-prim
 
   ghc-prof-options: -auto-all
-  ghc-options: -Wall -fno-warn-unused-do-bind -funbox-strict-fields
-  if impl(ghc >= 6.8)
-    ghc-options: -fwarn-tabs
+  ghc-options: -Wall
 
   hs-source-dirs: src
   include-dirs: include
