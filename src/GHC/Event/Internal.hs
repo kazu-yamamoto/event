@@ -109,7 +109,7 @@ data Backend = forall a. Backend {
                   -> Event    -- old events to watch for ('mempty' for new)
                   -> Event    -- new events to watch for ('mempty' to delete)
                   -> IO ()
-                  
+
     , _beModifyFdOnce :: a
                          -> Fd       -- file descriptor
                          -> Event    -- new events to watch for ('mempty' to delete)

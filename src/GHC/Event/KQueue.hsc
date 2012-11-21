@@ -80,7 +80,7 @@ new :: IO E.Backend
 new = do
   qfd <- kqueue
   changesArr <- A.empty
-  changes <- newMVar changesArr 
+  changes <- newMVar changesArr
   events <- A.new 64
   let !be = E.backend poll modifyFd delete (EventQueue qfd changes events)
   return be

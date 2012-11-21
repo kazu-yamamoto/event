@@ -122,7 +122,7 @@ modifyFd ep fd oevt nevt = with (Event (fromEvent nevt) fd) $
 
 
 modifyFdOnce :: EPoll -> Fd -> E.Event -> IO ()
-modifyFdOnce ep fd evt = 
+modifyFdOnce ep fd evt =
   do let !ev = fromEvent evt .|. epollOneShot
      res <- with (Event ev fd) $
             epollControl_ (epollFd ep) controlOpModify fd
@@ -133,7 +133,7 @@ modifyFdOnce ep fd evt =
                  then with (Event ev fd) $
                       epollControl (epollFd ep) controlOpAdd fd
                  else throwErrno "modifyFdOnce"
-  
+
 
 -- | Select a set of file descriptors which are ready for I/O
 -- operations and call @f@ for all ready file descriptors, passing the
@@ -155,7 +155,7 @@ poll ep timeout f = do
     cap <- A.capacity events
     when (cap == n) $ A.ensureCapacity events (2 * cap)
   return n
-  
+
 
 -- | Select a set of file descriptors which are ready for I/O
 -- operations and call @f@ for all ready file descriptors, passing the
@@ -169,7 +169,7 @@ pollNonBlock ep f = do
   -- we just return (and try again later.)
   n <- A.unsafeLoad events $ \es cap ->
        epollWaitUnsafe (epollFd ep) es cap 0
-  if n > 0 
+  if n > 0
     then do A.forM_ events $ \e -> f (eventFd e) (toEvent (eventTypes e))
             cap <- A.capacity events
             when (cap == n) $ A.ensureCapacity events (2 * cap)
