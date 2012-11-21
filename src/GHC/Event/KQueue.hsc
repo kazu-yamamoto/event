@@ -296,9 +296,9 @@ keventUnsafe :: QueueFd -> Ptr Event -> Int -> Ptr Event -> Int -> Ptr TimeSpec
 keventUnsafe k chs chlen evs evlen ts
     = fmap fromIntegral $ E.throwErrnoIfMinus1NoRetry "kevent" $
 #if defined(HAVE_KEVENT64)
-      c_kevent64Unsafe k chs (fromIntegral chlen) evs (fromIntegral evlen) 0 ts
+      c_kevent64_unsafe k chs (fromIntegral chlen) evs (fromIntegral evlen) 0 ts
 #else
-      c_keventUnsafe k chs (fromIntegral chlen) evs (fromIntegral evlen) ts
+      c_kevent_unsafe k chs (fromIntegral chlen) evs (fromIntegral evlen) ts
 #endif
 
 withTimeSpec :: TimeSpec -> (Ptr TimeSpec -> IO a) -> IO a
@@ -332,11 +332,11 @@ foreign import ccall safe "kevent64"
     c_kevent64 :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt -> CUInt
                -> Ptr TimeSpec -> IO CInt
 foreign import ccall unsafe "kevent64"
-    c_kevent64Unsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt -> CUInt
+    c_kevent64_unsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt -> CUInt
                -> Ptr TimeSpec -> IO CInt
 #elif defined(HAVE_KEVENT)
 foreign import ccall unsafe "kevent"
-    c_keventUnsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt
+    c_kevent_unsafe :: QueueFd -> Ptr Event -> CInt -> Ptr Event -> CInt
              -> Ptr TimeSpec -> IO CInt
 #else
 #error no kevent system call available!?
