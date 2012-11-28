@@ -101,8 +101,8 @@ modifyFd q fd oevt nevt = withMVar (eqChanges q) $ \ch -> do
 modifyFdOnce :: EventQueue -> Fd -> E.Event -> IO ()
 modifyFdOnce q fd evt = withMVar (eqChanges q) $ \ch -> do
   let addChange filt flag = A.snoc ch $ event fd filt flag noteEOF
-  when (evt `E.eventIs` E.evtRead)  $ addChange filterRead flagOneshot
-  when (evt `E.eventIs` E.evtWrite) $ addChange filterWrite flagOneshot
+  when (evt `E.eventIs` E.evtRead)  $ addChange filterRead (flagAdd .|. flagOneshot)
+  when (evt `E.eventIs` E.evtWrite) $ addChange filterWrite (flagAdd .|. flagOneshot)
 
 poll :: EventQueue
      -> Timeout
@@ -241,7 +241,7 @@ newtype FFlag = FFlag Word32
  }
 
 newtype Flag = Flag Word16
-    deriving (Eq, Show, Storable)
+    deriving (Bits, Eq, Num, Show, Storable)
 
 #{enum Flag, Flag
  , flagAdd     = EV_ADD
